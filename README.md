@@ -12,7 +12,7 @@ Movie app that can check the latest movies based on specific categories.
 ## Getting Started
 <!-- What are the steps that a user must take in order to build this app on their own machine and get it running? -->
 The use should install the node modules, .gitignore, eslintrc.json, package.json, in the visual code to get access to all the modules and code used to run the app.
-
+install i in the terminal, to install the module file
 ## Project Features
 <!-- What are the features included in you app -->
 - Home Page Endpoit which directs to the homepage by / path 
