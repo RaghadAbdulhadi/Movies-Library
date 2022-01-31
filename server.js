@@ -11,7 +11,6 @@ const express = require('express');
 const cors = require('cors');
 
 //Server Error Handler
-const errorHandler = require('errorHandler')
 
 //Enable use Error Handler 
 
@@ -27,13 +26,12 @@ app.use(cors());
 
 //Host for the Server
 //console.log to make sure its listening
-app.listen(3030, () => {
-    console.log('listening to port 3030')
-});
+
 
 
 //Data from JSON File
 const moviesJson = require('./data.json');
+
 
 // const //res = require('express/lib/response');
 
@@ -54,6 +52,7 @@ function MoviesLibrary(title, poster_path, overview) {
 //Function homePageHandler
 function moviesLibraryHandler(req, res) {
     let moviesLibray = [];
+    his();
     moviesJson.data.forEach(movie => {
         let movieOne = new MoviesLibrary(movie.title, movie.poster_path, movie.overview);
         moviesLibray.push(movieOne);
@@ -92,12 +91,19 @@ function pageNotFoundHandler(req, res) {
 
 //Function to handle the server error (status 500)
 
+app.use(errorHandler);
 function errorHandler(err, req, res, next){
-    res.send({
+    //should i put .status(500)
+    res.status(500).send({
         "status": 500,
         "responseText": "Sorry, something went wrong"
     });
 
 }
 
-app.use(errorHandler);
+app.listen(3030, () => {
+    console.log('listening to port 3030')
+});
+
+//commad to kill: 
+
