@@ -1,3 +1,7 @@
+'use strict'
+//Method that allwos me to access information from the .env file
+require('dotenv').config();
+
 //require() .. built-in function to include external modules that exist in separate files. require() statement basically reads a JavaScript file, executes it, and then proceeds to return the export object.
 //const express = require(argument which specify the name of the package)
 
@@ -10,16 +14,10 @@ const express = require('express');
 //If you are currently on http://example.com/page1 and you are referring an image from http://image.com/myimage.jpg you won't be able to fetch that image unless http://image.com allows cross-origin sharing with http://example.com.
 const cors = require('cors');
 
-//
-const axios = require('axios');
-
-//????
-require('dotenv').config();
-
 //Security for the PORT
 const PORT = process.env.PORT || 3030; 
 
-//Create an Instance of the express module in a new variable
+//Create your server, an Instance of the express module in a new variable
 const app = express();
 
 //app.use(cors()) .. will enable the express server to respond to preflight requests
@@ -31,19 +29,43 @@ app.use(cors());
 //Data from JSON File
 const moviesJson = require('./data.json');
 
-
-// const //res = require('express/lib/response');
+//Data from third-party API
+const axios = require('axios');
+//const { //title } = require('errorhandler');
 
 //**Build the routes using the GET request **
 
-//** Home Page Endpoit: "/" **
+//*Home Page Endpoit: "/"
 //A route with a method of get and a path of /
 //Callback -- JSON data
 app.get('/', moviesLibraryHandler);
 
-//Constructor Function 
-function MoviesLibrary(title, poster_path, overview) {
+//*Favorite Page Endpoint: "/favorite"
+app.get('/favorite', favoriteMoviesLibraryHandler);
+
+//GET request to the 3rd party API for Endpoints
+
+//*Get the trending movies data from the Movie DB API "/trending"
+app.get('/trending', trendingMoviesLibraryHandler);
+
+//*Search for a movie name to get its information "/search"
+app.get('/search', searchMoviesLibraryHandler);
+
+//* for a movie name to get its information "/genre"
+app.get('/genre', genreMoviesLibraryHandler);
+
+//* for a movie name to get its information ""
+app.get('/discover', discoverMoviesLibraryHandler);
+
+//Global Variables in the URL
+
+//Global URL
+
+//Constructor Function for the Third-Party API / JSON file
+function MoviesLibrary(id, title, release_date, poster_path, overview) {
+    this.id = id;
     this.title = title;
+    this.release_date = release_date;
     this.poster_path = poster_path;
     this.overview = overview;
 }
@@ -51,8 +73,7 @@ function MoviesLibrary(title, poster_path, overview) {
 //Function homePageHandler
 function moviesLibraryHandler(req, res) {
     let moviesLibray = [];
-    //To throw the 5oo server error 
-    //his();
+    //To throw the 500 server error, call a notexisiting function hi();
     moviesJson.data.forEach(movie => {
         let movieOne = new MoviesLibrary(movie.title, movie.poster_path, movie.overview);
         moviesLibray.push(movieOne);
@@ -60,28 +81,75 @@ function moviesLibraryHandler(req, res) {
     return res.status(200).json(moviesLibray);
 }
 
-//** Favorite Page Endpoint: "/favorite" **
-app.get('/favorite', favoriteMoviesLibraryHandler);
-
 //Function favoriteMoviesLibraryHandler
 function favoriteMoviesLibraryHandler(req, res) {
     return res.status(200).send('Welcome to Favorite Page')
 }
 
-//GET request to the 3rd party API for Endpoints
+//Function trendingMoviesLibraryHandler
+function trendingMoviesLibraryHandler(req, res) {
+    let trendUrl = `https://api.themoviedb.org/3/trending/all/week?api_key=${process.env.APIKEY}&language=en-US`
+    axios.get(trendUrl).then((trendData) =>{
+        //console.log(trendData.data.results)
+        let movies = trendData.data.results.map(movie =>{
+            return new MoviesLibrary(movie.id, movie.title, movie.release_date, movie.poster_path, movie.overview)
+        })
+        res.status(200).json(movies);
+    }).catch(err=> {
+        errorHandler(err, req, res, next);
+});
+}
 
-// /trending : Get the trending movies data from the Movie DB API
+//Function searchMoviesLibraryHandler
+function searchMoviesLibraryHandler(req, res) {
+    //let searchUrl = `${url}&query=${movieStartsWith}&page=${pageNumber}`
+    let searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${process.env.APIKEY}&language=en-US&query=The&page=2`
+    axios.get(searchUrl).then(searchData =>{
+        console.log(searchData.data.results)
+        let movies = searchData.data.results.map(movie =>{
+            return new MoviesLibrary(movie.id, movie.title, movie.release_date, movie.poster_path, movie.overview)
+        })
+        res.status(200).json(movies);
+    }).catch(err =>{
+        errorHandler(err, req, res);
+    })
+}
+
+//Function genreMoviesLibraryHandler
+function genreMoviesLibraryHandler(req, res) {
+    let genreUrl = `https://api.themoviedb.org/3/genre/movie/list?api_key=${process.env.APIKEY}&language=en-US`
+    axios.get(genreUrl).then((genreData) =>{
+        //console.log(genreData.data.genres)
+        let movies = genreData.data.genres.map(movie =>{
+            return new MoviesLibrary(movie.id, movie.name, movie.title, movie.release_date, movie.poster_path, movie.overview)
+        })
+        res.status(200).json(movies);
+    }).catch(err => {
+        errorHandler(err, req, res);
+});
+}
+
+//Function discoverMoviesLibraryHandler
+function discoverMoviesLibraryHandler(req, res) {
+    let discoverUrl = `https://api.themoviedb.org/3/discover/movie?api_key=${process.env.APIKEY}&language=en-US`
+    axios.get(discoverUrl).then((discoverData) =>{
+        //console.log(discoverData.data.results)
+        let movies = discoverData.data.results.map(movie =>{
+            return new MoviesLibrary(movie.id, movie.title, movie.release_date, movie.poster_path, movie.overview)
+        })
+        res.status(200).json(movies);
+    }).catch(err => {
+        errorHandler(err, req, res);
+});
+}
 
 
-
-
-
-
-
-//** Handle errors **
-
-//Page not Found Error
+//Page not Found Error(or .use) 
 app.get('*', pageNotFoundHandler);
+
+//Server Error, that the server encountered an unexpected condition that prevented it from fulfilling the request.
+app.use(errorHandler);
+
 
 //Function to handle the Page not Found Error
 function pageNotFoundHandler(req, res) {
@@ -89,34 +157,25 @@ function pageNotFoundHandler(req, res) {
         "status": 404,
         "responseText": "page not found error"
     });
-
 }
 
-//Server Error, that the server encountered an unexpected condition that prevented it from fulfilling the request.
 //Function to handle the server error (status 500)
-app.use(errorHandler);
-function errorHandler(err, req, res, next){
-    //should i put .status(500)
+function errorHandler(err, req, res){
     res.status(500).send({
         "status": 500,
-        "responseText": "Sorry, something went wrong"
+        "responseText": "Sorry, something went wrong",
     });
-
 }
 
-
-
-
-
-//Host for the Server
+//Listen to the Server
 //console.log to make sure its listening
 //const PORT = process.env.PORT;
-//STATIC
-/*
+/*Static
 app.listen(3030, () => {
     console.log('listening to port 3030')
 });
 */
+//To listen to any port
 app.listen(PORT, ()=>{
     console.log(`listening to port ${PORT}`)
 });
