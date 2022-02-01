@@ -10,10 +10,14 @@ const express = require('express');
 //If you are currently on http://example.com/page1 and you are referring an image from http://image.com/myimage.jpg you won't be able to fetch that image unless http://image.com allows cross-origin sharing with http://example.com.
 const cors = require('cors');
 
-//Server Error Handler
+//
+const axios = require('axios');
 
-//Enable use Error Handler 
+//????
+require('dotenv').config();
 
+//Security for the PORT
+const PORT = process.env.PORT || 3030; 
 
 //Create an Instance of the express module in a new variable
 const app = express();
@@ -23,11 +27,6 @@ const app = express();
 //makes the server accessible to any domain that requests a resource from the server via a browser.
 //Connect between front-end and back-end
 app.use(cors());
-
-//Host for the Server
-//console.log to make sure its listening
-
-
 
 //Data from JSON File
 const moviesJson = require('./data.json');
@@ -52,7 +51,8 @@ function MoviesLibrary(title, poster_path, overview) {
 //Function homePageHandler
 function moviesLibraryHandler(req, res) {
     let moviesLibray = [];
-    his();
+    //To throw the 5oo server error 
+    //his();
     moviesJson.data.forEach(movie => {
         let movieOne = new MoviesLibrary(movie.title, movie.poster_path, movie.overview);
         moviesLibray.push(movieOne);
@@ -68,17 +68,23 @@ function favoriteMoviesLibraryHandler(req, res) {
     return res.status(200).send('Welcome to Favorite Page')
 }
 
-//** Handle errors **
+//GET request to the 3rd party API for Endpoints
 
+// /trending : Get the trending movies data from the Movie DB API
+
+
+
+
+
+
+
+//** Handle errors **
 
 //Page not Found Error
 app.get('*', pageNotFoundHandler);
 
 //Function to handle the Page not Found Error
 function pageNotFoundHandler(req, res) {
-    // let pageNotFound = new ErrorsObject(errorStatus, errorResponseText);
-    // this.status = 404;
-    // this.responseText = "page not found error"
     return res.status(404).send({
         "status": 404,
         "responseText": "page not found error"
@@ -87,10 +93,7 @@ function pageNotFoundHandler(req, res) {
 }
 
 //Server Error, that the server encountered an unexpected condition that prevented it from fulfilling the request.
-//app.get('/ChooseYourMovie', serverErrorHandler);
-
 //Function to handle the server error (status 500)
-
 app.use(errorHandler);
 function errorHandler(err, req, res, next){
     //should i put .status(500)
@@ -101,9 +104,19 @@ function errorHandler(err, req, res, next){
 
 }
 
+
+
+
+
+//Host for the Server
+//console.log to make sure its listening
+//const PORT = process.env.PORT;
+//STATIC
+/*
 app.listen(3030, () => {
     console.log('listening to port 3030')
 });
-
-//commad to kill: 
-
+*/
+app.listen(PORT, ()=>{
+    console.log(`listening to port ${PORT}`)
+});
