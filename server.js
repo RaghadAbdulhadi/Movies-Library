@@ -52,7 +52,7 @@ function MoviesLibrary(title, poster_path, overview) {
 //Function homePageHandler
 function moviesLibraryHandler(req, res) {
     let moviesLibray = [];
-    his();
+    //his();
     moviesJson.data.forEach(movie => {
         let movieOne = new MoviesLibrary(movie.title, movie.poster_path, movie.overview);
         moviesLibray.push(movieOne);
