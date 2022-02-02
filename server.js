@@ -1,4 +1,5 @@
 'use strict'
+
 //Method that allwos me to access information from the .env file
 require('dotenv').config();
 
@@ -13,8 +14,6 @@ const express = require('express');
 //It is a mechanism to allow or restrict requested resources on a web server depend on where the HTTP request was initiated.
 //If you are currently on http://example.com/page1 and you are referring an image from http://image.com/myimage.jpg you won't be able to fetch that image unless http://image.com allows cross-origin sharing with http://example.com.
 const cors = require('cors');
-
-
 
 //pg is the Library that provides us with the Client, client is a database that will be connected to my database
 const pg = require('pg');
@@ -41,14 +40,11 @@ const client = new pg.Client(process.env.DATABASE_URL);
 //Connect between front-end and back-end
 app.use(cors());
 
-
-
 //Data from JSON File
 const moviesJson = require('./data.json');
 
 //Data from third-party API
 const axios = require('axios');
-
 
 //**Build the routes using the GET request **
 
@@ -82,8 +78,14 @@ app.post('/addMovie', addMovieMoviesLibraryHandler);
 //*Get request to get all the data from the database "/getMovies"
 app.get('/getMovies', getMoviesMoviesLibraryHandler);
 
-//Update one updateMovie
-//app.put('/updateMovie', updateMovieMoviesLibraryHandler)
+//Update Request, update the comments for specific movie "/UPDATE/id"
+app.put('/updateMovie/:id', updateMovieMoviesLibraryHandler);
+
+//Delete Request, to remove specific movie in the database "/DELETE/id"
+app.delete('/deleteMovie/:id', deleteMovieMoviesLibraryHandler);
+
+//Get request to get specific movie from the database "getMovie/id"
+app.get('/getMovie/:id', getMovieMoviesLibraryHandler);
 
 
 //Constructor Function for the Third-Party API || JSON file
@@ -113,7 +115,7 @@ function favoriteMoviesLibraryHandler(req, res) {
 
 //Function trendingMoviesLibraryHandler
 function trendingMoviesLibraryHandler(req, res) {
-    let trendUrl = `https://api.themoviedb.org/3/trending/all/week?api_key=${process.env.APIKEY}&language=en-US`
+    const trendUrl = `https://api.themoviedb.org/3/trending/all/week?api_key=${process.env.APIKEY}&language=en-US`
     axios.get(trendUrl).then((trendData) => {
         //console.log(trendData.data.results)
         let movies = trendData.data.results.map(movie => {
@@ -127,7 +129,7 @@ function trendingMoviesLibraryHandler(req, res) {
 
 //Function searchMoviesLibraryHandler
 function searchMoviesLibraryHandler(req, res) {
-    let userSearch = req.query.userSearch;
+    const userSearch = req.query.userSearch;
     //console.log(userSearch);
     let searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${process.env.APIKEY}&language=en-US&query=${userSearch}`;
     axios.get(searchUrl).then(searchData => {
@@ -143,7 +145,7 @@ function searchMoviesLibraryHandler(req, res) {
 
 //Function genreMoviesLibraryHandler
 function genreMoviesLibraryHandler(req, res) {
-    let genreUrl = `https://api.themoviedb.org/3/genre/movie/list?api_key=${process.env.APIKEY}&language=en-US`
+    const genreUrl = `https://api.themoviedb.org/3/genre/movie/list?api_key=${process.env.APIKEY}&language=en-US`
     axios.get(genreUrl).then((genreData) => {
         //console.log(genreData.data.genres)
         let movies = genreData.data.genres.map(movie => {
@@ -157,7 +159,7 @@ function genreMoviesLibraryHandler(req, res) {
 
 //Function discoverMoviesLibraryHandler
 function discoverMoviesLibraryHandler(req, res) {
-    let discoverUrl = `https://api.themoviedb.org/3/discover/movie?api_key=${process.env.APIKEY}&language=en-US`
+    const discoverUrl = `https://api.themoviedb.org/3/discover/movie?api_key=${process.env.APIKEY}&language=en-US`
     axios.get(discoverUrl).then((discoverData) => {
         //console.log(discoverData.data.results)
         let movies = discoverData.data.results.map(movie => {
@@ -194,13 +196,49 @@ function getMoviesMoviesLibraryHandler(req, res) {
     });
 }
 
+//Function updateMovieMoviesLibraryHandler
+function updateMovieMoviesLibraryHandler(req, res) {
+    const id = req.params.id;
+    //console.log(update);
+    let movie = req.body;
+    let values = [movie.title, movie.release_date, movie.poster_path, movie.overview, movie.comment];
+    //try passing the id with the values and remove it from the sql as a variable jus put $6
+    let sql = `UPDATE addmovie SET title = $1, release_date = $2, poster_path = $3, overview = $4, comment = $5 WHERE id=${id} RETURNING *;`
+    client.query(sql, values).then(data => {
+        res.status(200).json(data.rows);
+    }).catch(err => {
+        errorHandler(err, req, res)
+    });
+}
+
+//Function deleteMovieMoviesLibraryHandler
+function deleteMovieMoviesLibraryHandler(req, res){
+    const id = req.params.id;
+    let sql = `DELETE FROM addmovie WHERE id=${id}`;
+    client.query(sql).then(() => {
+        // res.status(204).json({});
+        res.status(200).send(`The movie with ${id} has been succesfully deleted`)
+    }).catch(err => {
+        errorHandler(err, req, res)
+    });
+}
+
+//Function getMovieMoviesLibraryHandler
+function getMovieMoviesLibraryHandler(req, res) {
+    const id = req.params.id;
+    let sql = `SELECT * FROM addmovie WHERE id=${id};`;
+    client.query(sql).then(data => {
+        res.status(200).json(data.rows);
+    }).catch(err => {
+        errorHandler(err, req, res)
+    });
+}
 
 //Page not Found Error(or .use) 
 app.get('*', pageNotFoundHandler);
 
 //Server Error, that the server encountered an unexpected condition that prevented it from fulfilling the request.
 app.use(errorHandler);
-
 
 //Function to handle the Page not Found Error
 function pageNotFoundHandler(req, res) {
@@ -217,6 +255,7 @@ function errorHandler(err, req, res) {
         "responseText": "Sorry, something went wrong",
     });
 }
+
 
 //Listen to the Server
 //console.log to make sure its listening
@@ -246,3 +285,4 @@ client.connect().then(() => {
 //NOTES:
 //http methods: get, post, put, delete
 //DataBase methods: CRUD operations - create, read, update, delete | drop
+//TRY PATCH Method
