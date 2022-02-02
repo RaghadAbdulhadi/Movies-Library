@@ -1,6 +1,6 @@
-DROP TABLE IF EXISTS addMovie;
+DROP TABLE IF EXISTS addmovie;
 
-CREATE TABLE IF NOT EXISTS addMovie (
+CREATE TABLE IF NOT EXISTS  addmovie (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255),
     release_date VARCHAR(255),

@@ -14,6 +14,8 @@ const express = require('express');
 //If you are currently on http://example.com/page1 and you are referring an image from http://image.com/myimage.jpg you won't be able to fetch that image unless http://image.com allows cross-origin sharing with http://example.com.
 const cors = require('cors');
 
+
+
 //pg is the Library that provides us with the Client, client is a database that will be connected to my database
 const pg = require('pg');
 
@@ -23,11 +25,15 @@ const PORT = process.env.PORT || 3030;
 //Create your server, an Instance of the express module in a new variable
 const app = express();
 
+//Parse the data from the body to JSON data 
+app.use(express.json());
+
 //Create a Client with the DataBase in the Postgres (Ubuntu) URL
 //New client -- Link it with the DataBase we created
 const client = new pg.Client(process.env.DATABASE_URL);
 //Conect the client to the DataBase
-//psql -d movieslib -f schema.sql
+//psql -d movieslibrary -f schema.sql
+//database: movieslibrary
 
 //app.use(cors()) .. will enable the express server to respond to preflight requests
 //A preflight request is basically an OPTION request sent to the server before the actual request is sent, in order to ask which origin and which request options the server accepts
@@ -35,8 +41,7 @@ const client = new pg.Client(process.env.DATABASE_URL);
 //Connect between front-end and back-end
 app.use(cors());
 
-//Parse the data from the body to JSON data 
-app.use(express.json());
+
 
 //Data from JSON File
 const moviesJson = require('./data.json');
@@ -75,7 +80,11 @@ app.get('/discover', discoverMoviesLibraryHandler);
 app.post('/addMovie', addMovieMoviesLibraryHandler);
 
 //*Get request to get all the data from the database "/getMovies"
-//app.get('/getMovies', getMoviesMoviesLibraryHandler);
+app.get('/getMovies', getMoviesMoviesLibraryHandler);
+
+//Update one updateMovie
+//app.put('/updateMovie', updateMovieMoviesLibraryHandler)
+
 
 //Constructor Function for the Third-Party API || JSON file
 function MoviesLibrary(id, title, release_date, poster_path, overview) {
@@ -118,9 +127,11 @@ function trendingMoviesLibraryHandler(req, res) {
 
 //Function searchMoviesLibraryHandler
 function searchMoviesLibraryHandler(req, res) {
-    let searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${process.env.APIKEY}&language=en-US&query=The&page=2`
+    let userSearch = req.query.userSearch;
+    //console.log(userSearch);
+    let searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${process.env.APIKEY}&language=en-US&query=${userSearch}`;
     axios.get(searchUrl).then(searchData => {
-        console.log(searchData.data.results)
+        //console.log(searchData.data.results)
         let movies = searchData.data.results.map(movie => {
             return new MoviesLibrary(movie.id, movie.title, movie.release_date, movie.poster_path, movie.overview)
         })
@@ -150,7 +161,7 @@ function discoverMoviesLibraryHandler(req, res) {
     axios.get(discoverUrl).then((discoverData) => {
         //console.log(discoverData.data.results)
         let movies = discoverData.data.results.map(movie => {
-            return new MoviesLibrary(movie.id, movie.title, movie.release_date, movie.poster_path, movie.overview)
+            return new MoviesLibrary(movie.title, movie.release_date, movie.poster_path, movie.overview)
         })
         res.status(200).json(movies);
     }).catch(err => {
@@ -158,9 +169,29 @@ function discoverMoviesLibraryHandler(req, res) {
     });
 }
 
-//
-function addMovieMoviesLibraryHandler(req, res){
-    console.log(req.body);
+//Function addMovieMoviesLibraryHandler
+function addMovieMoviesLibraryHandler(req, res) {
+    const movie = req.body;
+    //console.log(movie);
+    let sql = `INSERT INTO addmovie (title, release_date, poster_path, overview) VALUES ($1,$2,$3,$4) RETURNING *;`
+    let values = [movie.title, movie.release_date, movie.poster_path, movie.overview];
+    client.query(sql, values).then(data => {
+        res.status(200).json(data.rows);
+    }).catch(err => {
+        errorHandler(err, req, res)
+    });
+
+}
+
+//Function getMoviesMoviesLibraryHandler
+function getMoviesMoviesLibraryHandler(req, res) {
+    let sql = `SELECT * FROM addmovie;`;
+    client.query(sql).then(data => {
+        //rows array is the object that i inserted in the DB
+        res.status(200).json(data.rows);
+    }).catch(err => {
+        errorHandler(err, req, res)
+    });
 }
 
 
@@ -205,7 +236,7 @@ client.connect().then(() => {
     app.listen(PORT, () => {
         console.log(`listening to port ${PORT}`)
     });
-})
+});
 
 
 
