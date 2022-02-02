@@ -14,11 +14,20 @@ const express = require('express');
 //If you are currently on http://example.com/page1 and you are referring an image from http://image.com/myimage.jpg you won't be able to fetch that image unless http://image.com allows cross-origin sharing with http://example.com.
 const cors = require('cors');
 
+//pg is the Library that provides us with the Client, client is a database that will be connected to my database
+const pg = require('pg');
+
 //Security for the PORT
-const PORT = process.env.PORT || 3030; 
+const PORT = process.env.PORT || 3030;
 
 //Create your server, an Instance of the express module in a new variable
 const app = express();
+
+//Create a Client with the DataBase in the Postgres (Ubuntu) URL
+//New client -- Link it with the DataBase we created
+const client = new pg.Client(process.env.DATABASE_URL);
+//Conect the client to the DataBase
+//psql -d movieslib -f schema.sql
 
 //app.use(cors()) .. will enable the express server to respond to preflight requests
 //A preflight request is basically an OPTION request sent to the server before the actual request is sent, in order to ask which origin and which request options the server accepts
@@ -26,12 +35,15 @@ const app = express();
 //Connect between front-end and back-end
 app.use(cors());
 
+//Parse the data from the body to JSON data 
+app.use(express.json());
+
 //Data from JSON File
 const moviesJson = require('./data.json');
 
 //Data from third-party API
 const axios = require('axios');
-//const { //title } = require('errorhandler');
+
 
 //**Build the routes using the GET request **
 
@@ -54,14 +66,18 @@ app.get('/search', searchMoviesLibraryHandler);
 //* for a movie name to get its information "/genre"
 app.get('/genre', genreMoviesLibraryHandler);
 
-//* for a movie name to get its information ""
+//* for a movie name to get its information "/discover"
 app.get('/discover', discoverMoviesLibraryHandler);
 
-//Global Variables in the URL
 
-//Global URL
+//**DATABASE**
+//*Post request to save a specific movie to database along with your personal comments "addMovie"
+app.post('/addMovie', addMovieMoviesLibraryHandler);
 
-//Constructor Function for the Third-Party API / JSON file
+//*Get request to get all the data from the database "/getMovies"
+//app.get('/getMovies', getMoviesMoviesLibraryHandler);
+
+//Constructor Function for the Third-Party API || JSON file
 function MoviesLibrary(id, title, release_date, poster_path, overview) {
     this.id = id;
     this.title = title;
@@ -89,28 +105,27 @@ function favoriteMoviesLibraryHandler(req, res) {
 //Function trendingMoviesLibraryHandler
 function trendingMoviesLibraryHandler(req, res) {
     let trendUrl = `https://api.themoviedb.org/3/trending/all/week?api_key=${process.env.APIKEY}&language=en-US`
-    axios.get(trendUrl).then((trendData) =>{
+    axios.get(trendUrl).then((trendData) => {
         //console.log(trendData.data.results)
-        let movies = trendData.data.results.map(movie =>{
+        let movies = trendData.data.results.map(movie => {
             return new MoviesLibrary(movie.id, movie.title, movie.release_date, movie.poster_path, movie.overview)
         })
         res.status(200).json(movies);
-    }).catch(err=> {
-        errorHandler(err, req, res, next);
-});
+    }).catch(err => {
+        errorHandler(err, req, res);
+    });
 }
 
 //Function searchMoviesLibraryHandler
 function searchMoviesLibraryHandler(req, res) {
-    //let searchUrl = `${url}&query=${movieStartsWith}&page=${pageNumber}`
     let searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${process.env.APIKEY}&language=en-US&query=The&page=2`
-    axios.get(searchUrl).then(searchData =>{
+    axios.get(searchUrl).then(searchData => {
         console.log(searchData.data.results)
-        let movies = searchData.data.results.map(movie =>{
+        let movies = searchData.data.results.map(movie => {
             return new MoviesLibrary(movie.id, movie.title, movie.release_date, movie.poster_path, movie.overview)
         })
         res.status(200).json(movies);
-    }).catch(err =>{
+    }).catch(err => {
         errorHandler(err, req, res);
     })
 }
@@ -118,29 +133,34 @@ function searchMoviesLibraryHandler(req, res) {
 //Function genreMoviesLibraryHandler
 function genreMoviesLibraryHandler(req, res) {
     let genreUrl = `https://api.themoviedb.org/3/genre/movie/list?api_key=${process.env.APIKEY}&language=en-US`
-    axios.get(genreUrl).then((genreData) =>{
+    axios.get(genreUrl).then((genreData) => {
         //console.log(genreData.data.genres)
-        let movies = genreData.data.genres.map(movie =>{
+        let movies = genreData.data.genres.map(movie => {
             return new MoviesLibrary(movie.id, movie.name, movie.title, movie.release_date, movie.poster_path, movie.overview)
         })
         res.status(200).json(movies);
     }).catch(err => {
         errorHandler(err, req, res);
-});
+    });
 }
 
 //Function discoverMoviesLibraryHandler
 function discoverMoviesLibraryHandler(req, res) {
     let discoverUrl = `https://api.themoviedb.org/3/discover/movie?api_key=${process.env.APIKEY}&language=en-US`
-    axios.get(discoverUrl).then((discoverData) =>{
+    axios.get(discoverUrl).then((discoverData) => {
         //console.log(discoverData.data.results)
-        let movies = discoverData.data.results.map(movie =>{
+        let movies = discoverData.data.results.map(movie => {
             return new MoviesLibrary(movie.id, movie.title, movie.release_date, movie.poster_path, movie.overview)
         })
         res.status(200).json(movies);
     }).catch(err => {
         errorHandler(err, req, res);
-});
+    });
+}
+
+//
+function addMovieMoviesLibraryHandler(req, res){
+    console.log(req.body);
 }
 
 
@@ -160,7 +180,7 @@ function pageNotFoundHandler(req, res) {
 }
 
 //Function to handle the server error (status 500)
-function errorHandler(err, req, res){
+function errorHandler(err, req, res) {
     res.status(500).send({
         "status": 500,
         "responseText": "Sorry, something went wrong",
@@ -176,6 +196,22 @@ app.listen(3030, () => {
 });
 */
 //To listen to any port
-app.listen(PORT, ()=>{
-    console.log(`listening to port ${PORT}`)
-});
+// app.listen(PORT, ()=>{
+//     console.log(`listening to port ${PORT}`)
+// });
+
+//Connect the server to the Client, to connect with the DB and then run the server 
+client.connect().then(() => {
+    app.listen(PORT, () => {
+        console.log(`listening to port ${PORT}`)
+    });
+})
+
+
+
+
+
+
+//NOTES:
+//http methods: get, post, put, delete
+//DataBase methods: CRUD operations - create, read, update, delete | drop
