@@ -100,6 +100,7 @@ function MoviesLibrary(id, title, release_date, poster_path, overview) {
 //Function homePageHandler
 function moviesLibraryHandler(req, res) {
     let moviesLibray = [];
+    //his();
     //To throw the 500 server error, call a notexisiting function hi();
     moviesJson.data.forEach(movie => {
         let movieOne = new MoviesLibrary(movie.title, movie.poster_path, movie.overview);
