@@ -29,7 +29,11 @@ app.use(express.json());
 
 //Create a Client with the DataBase in the Postgres (Ubuntu) URL
 //New client -- Link it with the DataBase we created
-const client = new pg.Client(process.env.DATABASE_URL);
+//const client = new pg.Client(process.env.DATABASE_URL);
+const client = new pg.Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
+})
 //Conect the client to the DataBase
 //psql -d movieslibrary -f schema.sql
 //database: movieslibrary
